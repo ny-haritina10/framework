@@ -3,7 +3,9 @@ package mapping;
 import java.lang.reflect.*;
 import java.util.*;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
+import session.FormSession;
 import session.Session;
 import verb.VerbAction;
 
@@ -16,12 +18,7 @@ import exception.*;
 import annotation.*;
 import engine.ValidationEngine;
 import engine.ValidationResult;
-import mapping.*;
-import scanner.*;
 import modelview.*;
-import session.*;
-import verb.*;
-import upload.*;
 
 
 public class Mapping {
@@ -42,13 +39,17 @@ public class Mapping {
             Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
 
             Method method = null;
+            FormSession session = new FormSession();
+
+            // session to store errors
+            Session sess = new Session(request);
 
             // Initialize controller attributes
             Field[] fields = controllerClass.getDeclaredFields();
             for (Field field : fields) {
                 if (field.getType().equals(Session.class)) {
                     field.setAccessible(true);
-                    field.set(controllerInstance, new Session(request));
+                    field.set(controllerInstance, sess);
                 }
             }
             
@@ -68,6 +69,11 @@ public class Mapping {
             if (method == null) {
                 throw new NoSuchMethodException("No method found for the verb: " + verb);
             }
+
+            System.out.println(method.getName() + " // " + controllerInstance.getClass().getName());
+
+            if (verb.equalsIgnoreCase("GET") && method != null && method.isAnnotationPresent(AnnotationGetMapping.class)) 
+            { session.storeFormMethod(method, controllerInstance); }
 
             Parameter[] parameters = method.getParameters();
             Object[] args = new Object[parameters.length];
@@ -123,56 +129,64 @@ public class Mapping {
                                 }
                             }
                             args[i] = files;
-                        } else {
+                        } 
+                        
+                        else {
                             String paramName = fileUpload.value();
                             Part part = request.getPart(paramName);
                             if (part != null && part.getContentType() != null) {
                                 args[i] = new FileUpload(part);
                             }
                         }
-                    } catch (Exception e) {
+                    } 
+                    
+                    catch (Exception e) {
                         throw new Exception("Failed to process file upload: " + e.getMessage());
                     }
                 }
+
                 else {
                     throw new Exception("Parameter not annotated properly");
                 }
-            }
+            }   
 
-            
+            // fields validation failed
             if (!validationResults.isEmpty()) {
                 ValidationResult combinedResult = new ValidationResult();
                 for (ValidationResult result : validationResults.values()) {
                     combinedResult.addErrors(result.getErrors());
                 }
-                
-                // https://claude.ai/chat/c01eabd1-182b-45f6-bce9-3f713e7e7095
-                
-                if (method.getReturnType().equals(ModelView.class)) {
-                    String requestURL = request.getRequestURI();
-                    String viewName = Utils.inferViewName(requestURL);
-                    
-                    ModelView mv = new ModelView(viewName);
-                    mv.add("validationErrors", combinedResult.getErrors());
-                    
-                    for (int i = 0; i < parameters.length; i++) {
-                        if (parameters[i].isAnnotationPresent(AnnotationModelAttribute.class)) {
-                            String modelName = parameters[i].getAnnotation(AnnotationModelAttribute.class).value();
-                            
-                            // return the model to retrieve the previous value
-                            mv.add(modelName, args[i]); 
-                        }
-                    }
-                    
-                    return mv;
-                } 
-                
-                else 
-                { throw new ValidationException(combinedResult); }
-            }
+            
+                if (session != null) {
+                    try {
+                        ModelView mv = session.invokeLastFormMethod();
 
+                        // TODO: fix later
+                        mv.add("validationErrors", combinedResult.getErrors());
+                        
+                        for (int i = 0; i < parameters.length; i++) {
+                            if (parameters[i].isAnnotationPresent(AnnotationModelAttribute.class)) {
+                                String modelName = parameters[i].getAnnotation(AnnotationModelAttribute.class).value();
+                                mv.add(modelName, args[i]);
+                            }
+                        }
+            
+                        // clear validationErrors after rendering
+                        request.removeAttribute("validationErrors");
+                        return mv;
+
+                    } 
+                    
+                    catch (IllegalStateException e) {
+                        throw new ValidationException(combinedResult);
+                    }
+                }
+            }
+            
             // Execute the method if validation passed
             method.setAccessible(true);
+            request.removeAttribute("validationErrors");
+
             return method.invoke(controllerInstance, args);
         }
 
@@ -186,30 +200,40 @@ public class Mapping {
     }
 
     private static Object convertParameterType(String value, Class<?> type) 
-        throws Exception
-    {
-        System.out.println("VALUE: " + value);
-        System.out.println("TYPE: " + type.getName());
-        
+        throws Exception 
+    {        
+        // null or empty values
+        if (value == null || value.trim().isEmpty()) {
+            if (!type.isPrimitive()) 
+            { return null; }
+            
+            // return their default values
+            if (type == int.class || type == Integer.class) return 0;
+            if (type == double.class || type == Double.class) return 0.0;
+            if (type == boolean.class) return false;
+            
+            throw new RequestException("Cannot convert empty value to primitive type: " + type.getName());
+        }
+
         try {
             if (type == String.class) 
             { return value; } 
-
+            
             else if (type == int.class || type == Integer.class) 
             { return Integer.parseInt(value); } 
-
+            
             else if (type == double.class || type == Double.class) 
             { return Double.parseDouble(value); } 
-
+            
             else if (type == java.sql.Date.class) 
             { return java.sql.Date.valueOf(value); }
-        }
+        } 
+        
+        catch (Exception e) 
+        { throw new RequestException("Invalid value for type " + type.getName() + ": " + value); }
 
-        catch(Exception e) 
-        { throw new RequestException(e.getMessage()); }
-
-        return null;
-    }
+        return null; 
+    }   
 
     private static void setAllModelAttribute(Object model, HttpServletRequest request) 
         throws Exception  

@@ -30,7 +30,9 @@ public class FrontController extends HttpServlet {
     private HashMap<String, Mapping> map = new HashMap<String, Mapping>();
 
     @Override
-    public void init() throws ServletException {
+    public void init() 
+        throws ServletException 
+    {        
         try {
             ServletConfig config = this.getServletConfig();
             ServletContext context = config.getServletContext();
@@ -184,14 +186,10 @@ public class FrontController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
         throws IOException, ServletException 
-    {
-        processRequest(request, response);
-    }
+    { processRequest(request, response); }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException 
-    {
-        processRequest(request, response);
-    }
+    { processRequest(request, response); }
 }

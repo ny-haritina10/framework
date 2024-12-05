@@ -7,17 +7,8 @@ import javax.servlet.http.*;
 
 import java.io.*;
 
-import utils.*;
-import exception.*;
-import annotation.*;
-import mapping.*;
-import scanner.*;
-import modelview.*;
-import session.*;
-import verb.*;
-import upload.*;
-
 public class ModelView {
+    
     String viewURL;
     HashMap<String, Object> data;
 
@@ -44,6 +35,9 @@ public class ModelView {
         { e.printStackTrace(); }
         
     }
+
+    public void clearData() 
+    { this.data.clear(); }
 
     public void add(String variableName, Object variableValue) 
     { this.data.put(variableName, variableValue); }
