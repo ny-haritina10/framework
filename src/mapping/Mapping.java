@@ -39,10 +39,10 @@ public class Mapping {
             Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
 
             Method method = null;
-            FormSession session = new FormSession();
 
             // session to store errors
             Session sess = new Session(request);
+            FormSession session = new FormSession(sess);
 
             // Initialize controller attributes
             Field[] fields = controllerClass.getDeclaredFields();
@@ -70,7 +70,6 @@ public class Mapping {
                 throw new NoSuchMethodException("No method found for the verb: " + verb);
             }
 
-            System.out.println(method.getName() + " // " + controllerInstance.getClass().getName());
 
             if (verb.equalsIgnoreCase("GET") && method != null && method.isAnnotationPresent(AnnotationGetMapping.class)) 
             { session.storeFormMethod(method, controllerInstance); }
@@ -100,7 +99,6 @@ public class Mapping {
                     Class<?> paramType = parameter.getType();
                     Object model = paramType.getDeclaredConstructor().newInstance();
                     
-                    // Set all model attributes
                     setAllModelAttribute(model, request);
                     
                     // Perform validation if @Valid is present
@@ -159,10 +157,11 @@ public class Mapping {
             
                 if (session != null) {
                     try {
-                        ModelView mv = session.invokeLastFormMethod();
 
-                        // TODO: fix later
-                        mv.add("validationErrors", combinedResult.getErrors());
+                        // retrieve the last methods 
+                        ModelView mv = session.invokeLastFormMethod();
+                        mv.add("validationErrors", combinedResult);
+
                         
                         for (int i = 0; i < parameters.length; i++) {
                             if (parameters[i].isAnnotationPresent(AnnotationModelAttribute.class)) {
@@ -170,14 +169,12 @@ public class Mapping {
                                 mv.add(modelName, args[i]);
                             }
                         }
-            
-                        // clear validationErrors after rendering
-                        request.removeAttribute("validationErrors");
-                        return mv;
 
+                        return mv;
                     } 
                     
                     catch (IllegalStateException e) {
+                        e.printStackTrace();
                         throw new ValidationException(combinedResult);
                     }
                 }

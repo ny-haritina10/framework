@@ -2,6 +2,8 @@ package session;
 
 import java.lang.reflect.Method;
 
+import javax.servlet.http.HttpServletRequest;
+
 import annotation.AnnotationGetMapping;
 import modelview.ModelView;
 
@@ -9,47 +11,39 @@ public class FormSession {
 
     private Method lastFormMethod;
     private Object lastControllerInstance;
-    private boolean hasDisplayedErrors = false;
+    private Session session;
+
+    public FormSession(Session session) {
+        this.session = session;
+    }
 
     public ModelView invokeLastFormMethod() 
         throws Exception 
     {
         try {
-            if (lastFormMethod != null && lastControllerInstance != null) {
-                if (hasDisplayedErrors) {
-                    lastFormMethod.setAccessible(true);
-                    ModelView mv = (ModelView) lastFormMethod.invoke(lastControllerInstance);
-    
-                    // Clear validation errors after rendering
-                    hasDisplayedErrors = false;
-                    resetStoredMethod();
-    
-                    return mv;
-                }
+            if (session.get("stored_method") != null && session.get("stored_controller") != null) {
+                this.lastFormMethod = (Method) session.get("stored_method");
+                this.lastControllerInstance = (Object) session.get("stored_controller");
+
+                this.lastFormMethod.setAccessible(true);
+                ModelView mv = (ModelView) this.lastFormMethod.invoke(this.lastControllerInstance);
+                System.out.println("invoked method from FormSession: " + mv.getViewURL());
+
+                return mv;
             }
 
             throw new IllegalStateException("No stored form method found");
         } 
         
         catch (Exception e) {
-            hasDisplayedErrors = true;
             throw e;
         }
     }    
 
-    public void storeFormMethod(Method method, Object controllerInstance) {
-        // Reset error flag when storing a new form method
-        hasDisplayedErrors = false;
-        
-        if (method != null && method.isAnnotationPresent(AnnotationGetMapping.class)) {
-            this.lastFormMethod = method;
-            this.lastControllerInstance = controllerInstance;
-        }
-    }
-
-    private void resetStoredMethod() {
-        this.lastFormMethod = null;
-        this.lastControllerInstance = null;
-        this.hasDisplayedErrors = false;
+    public void storeFormMethod(Method method, Object controllerInstance) {   
+        if (method != null && controllerInstance != null) {
+            session.add("stored_method", method);
+            session.add("stored_controller", controllerInstance);
+        }   
     }
 }

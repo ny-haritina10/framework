@@ -33,7 +33,6 @@ public class ModelView {
         
         catch (Exception e) 
         { e.printStackTrace(); }
-        
     }
 
     public void clearData() 
