@@ -151,8 +151,7 @@ public class FrontController extends HttpServlet {
             } 
             
             else {
-                // For regular requests, you might want to redirect to a form page
-                // with validation errors in session
+                // for regular requests redirect to a form page
                 request.getSession().setAttribute("validationErrors", ve.getFieldErrors());
                 response.sendRedirect(request.getHeader("Referer"));
             }

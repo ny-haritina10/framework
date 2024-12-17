@@ -31,6 +31,7 @@ public class Mapping {
         this.verbActions = verbActions;
     }
 
+    @SuppressWarnings("rawtypes")
     public static Object reflectMethod(Mapping mapping, HttpServletRequest request, String verb) 
         throws Exception 
     {
@@ -74,6 +75,13 @@ public class Mapping {
             if (verb.equalsIgnoreCase("GET") && method != null && method.isAnnotationPresent(AnnotationGetMapping.class)) 
             { session.storeFormMethod(method, controllerInstance); }
 
+            // check method annotation 
+            if (!isMethodAccessAllowed(method, sess)) {
+                ModelView mv = new ModelView("not-authenticated.jsp");
+                mv.add("message", "User not authenticated");
+                return mv;
+            }
+
             Parameter[] parameters = method.getParameters();
             Object[] args = new Object[parameters.length];
             Map<Integer, ValidationResult> validationResults = new HashMap<>();
@@ -91,6 +99,7 @@ public class Mapping {
                     AnnotationRequestParam requestParam = parameter.getAnnotation(AnnotationRequestParam.class);
                     String paramName = requestParam.name();
                     String paramValue = request.getParameter(paramName);
+
                     args[i] = convertParameterType(paramValue, parameter.getType());
                 }
 
@@ -194,6 +203,43 @@ public class Mapping {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    private static boolean isMethodAccessAllowed(Method method, Session sess) {
+        // If method is not annotated with @Auth, access is allowed
+        if (!method.isAnnotationPresent(Auth.class)) 
+        { return true; }
+        
+        // Redirect to a specific page for now
+        ModelView mv = new ModelView("not-authenticated.jsp");
+        mv.add("message", "User not authenticated");
+
+        Auth annotation = method.getAnnotation(Auth.class);
+    
+        // Check for no specified roles (any authenticated user can access)
+        if (annotation.roles().length == 1 && annotation.roles()[0].equals(Void.class)) {
+
+            // Not authentified 
+            if (sess.get("authenticated") == null) 
+            { return false; }
+            
+            // Check if authentication is explicitly set to false
+            if (sess.get("authenticated") != null && ((boolean) sess.get("authenticated")) == false) 
+            { return false; }
+            
+            return true;
+        }
+    
+        Class<?>[] roles = annotation.roles();
+        Class<?> sessionRole = (Class<?>) sess.get("profile");
+    
+        // Check session role matches any of the allowed roles
+        for (Class<?> role : roles) {
+            if (role.equals(sessionRole)) 
+            { return true; }
+        }
+    
+        return false;
     }
 
     private static Object convertParameterType(String value, Class<?> type) 
