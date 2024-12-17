@@ -26,8 +26,10 @@ javac -d "%bin%" -cp "%lib%\*" *.java
 cd "%bin%"
 jar -cvf "%jar_name%.jar" .
 
-:: Copy jar to target directory
+:: Copy jar to target directories
 copy "%jar_name%.jar" "%target_dir%"
+copy "%jar_name%.jar" "%target_dir_2%"
+
 
 :: Clean up
 cd "%root%"
