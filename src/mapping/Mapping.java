@@ -206,11 +206,10 @@ public class Mapping {
     }
 
     private static boolean isMethodAccessAllowed(Method method, Session sess) {
-        // If method is not annotated with @Auth, access is allowed
         if (!method.isAnnotationPresent(Auth.class)) 
         { return true; }
         
-        // Redirect to a specific page for now
+        // hard coded redirection for now
         ModelView mv = new ModelView("not-authenticated.jsp");
         mv.add("message", "User not authenticated");
 
@@ -218,13 +217,13 @@ public class Mapping {
     
         // Check for no specified roles (any authenticated user can access)
         if (annotation.roles().length == 1 && annotation.roles()[0].equals(Void.class)) {
-
-            // Not authentified 
             if (sess.get("authenticated") == null) 
             { return false; }
             
-            // Check if authentication is explicitly set to false
-            if (sess.get("authenticated") != null && ((boolean) sess.get("authenticated")) == false) 
+            if (
+                sess.get("authenticated") != null && 
+                ((boolean) sess.get("authenticated")) == false
+            ) 
             { return false; }
             
             return true;
