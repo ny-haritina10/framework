@@ -14,7 +14,6 @@ import modelview.ModelView;
 import response.FileExportResult;
 import verb.VerbAction;
 
-
 public class Utils {
 
     public static String parseURL(String projectName, String url) {
@@ -23,6 +22,9 @@ public class Utils {
 
         if (url.startsWith(prefix)) 
         { currentUrl = "/" + url.substring(prefix.length()); }
+        
+        System.out.println("given url:" + url);
+        System.out.println("Curent URL from parse URL: " + currentUrl);
 
         return currentUrl;
     }   
