@@ -1,22 +1,19 @@
 package utils;
 
+import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.*;
-import java.util.*;
-import javax.servlet.*;
-import javax.servlet.http.*;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import com.google.gson.Gson;
+
+import mapping.Mapping;
+import modelview.ModelView;
+import response.FileExportResult;
 import verb.VerbAction;
 
-import utils.*;
-import exception.*;
-import annotation.*;
-import mapping.*;
-import scanner.*;
-import modelview.*;
-import session.*;
-import verb.*;
-import upload.*;
 
 public class Utils {
 
@@ -91,6 +88,21 @@ public class Utils {
         else {
             String json = gson.toJson(result);
             out.print(json);
+        }
+    }
+
+    public static void handleFileExport(FileExportResult exportResult, HttpServletResponse response)
+        throws java.io.IOException 
+    {
+        response.setContentType(exportResult.getContentType());
+        response.setContentLength(exportResult.getFileContent().length);
+        
+        // set headers 
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + exportResult.getFilename() + "\"");
+
+        try (OutputStream outStream = response.getOutputStream()) {
+            outStream.write(exportResult.getFileContent());
+            outStream.flush();
         }
     }
 }
