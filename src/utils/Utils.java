@@ -1,22 +1,14 @@
 package utils;
 
 import java.io.PrintWriter;
-import java.lang.reflect.*;
 import java.util.*;
-import javax.servlet.*;
 import javax.servlet.http.*;
 import com.google.gson.Gson;
 import verb.VerbAction;
 
-import utils.*;
-import exception.*;
-import annotation.*;
 import mapping.*;
-import scanner.*;
 import modelview.*;
-import session.*;
-import verb.*;
-import upload.*;
+
 
 public class Utils {
 
@@ -26,6 +18,9 @@ public class Utils {
 
         if (url.startsWith(prefix)) 
         { currentUrl = "/" + url.substring(prefix.length()); }
+        
+        System.out.println("given url:" + url);
+        System.out.println("Curent URL from parse URL: " + currentUrl);
 
         return currentUrl;
     }   
