@@ -4,3 +4,10 @@
 /temp
 /lib
 /bin
+bin/utils/Utils.class
+bin/scanner/ControllerScanner.class
+bin/modelview/ModelView.class
+bin/mapping/Mapping.class
+bin/controller/FrontController.class
+/bin
+bin/controller/FrontController.class
